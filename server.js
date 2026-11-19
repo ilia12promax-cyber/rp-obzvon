@@ -3,14 +3,14 @@ const cors = require('cors');
 const fetch = require('node-fetch');
 const bcrypt = require('bcryptjs');
 const { Pool } = require('pg');
+const TelegramBot = require('node-telegram-bot-api');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(express.static(__dirname));
 
-app.use(express.static(__dirname)); // Раздаем статику
-
-// ВСТАВЬ СЮДА СВОЙ INTERNAL DATABASE URL ИЗ RENDER
+// ВСТАВЬ СЮДА СВОЙ INTERNAL DATABASE URL (если не используешь переменную окружения)
 const dbUrl = process.env.DATABASE_URL || "postgresql://rp_obzvon_db_user:JVM6l4xiQwgTrWTDjKUAoEwR1yaNRjlO@dpg-dbvkd5ec6qcc739nj84g-a/rp_obzvon_db";
 const pool = new Pool({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
 
@@ -96,7 +96,7 @@ async function initDb() {
 }
 initDb();
 
-// ================= API =================
+// ================= API САЙТА =================
 app.post("/api/register", async (req, res) => {
   try {
     const { login, password, nick } = req.body;
@@ -321,11 +321,130 @@ app.post("/api/check-payment", async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// НОВЫЙ МАРШРУТ ДЛЯ ПРИЕМА ОПЛАТЫ ОТ БОТА
+// ================= TELEGRAM BOT (ВСТРОЕННЫЙ) =================
+const BOT_TOKEN = process.env.BOT_TOKEN;
+if (BOT_TOKEN) {
+  const bot = new TelegramBot(BOT_TOKEN, { polling: true });
+  console.log("Telegram-бот запущен и слушает сообщения...");
+
+  bot.onText(/\/start(?: (.+))?/, async (msg, match) => {
+    const chatId = msg.chat.id;
+    const payload = match[1];
+    const nick = msg.from.first_name || msg.from.username || "друг";
+
+    if (!payload || !payload.startsWith("pay_")) {
+      return bot.sendMessage(chatId, `Привет, ${nick}!\n\nЧтобы пополнить баланс на сайте, нажми на кнопку «Пополнить» на самом сайте и выбери «Telegram Stars».`);
+    }
+
+    const parts = payload.split("_");
+    const siteUserId = parts[1];
+
+    if (!siteUserId) {
+      return bot.sendMessage(chatId, "Ошибка: неверная ссылка для оплаты.");
+    }
+
+    const prices = [
+      { label: '10 USDT', amount: 10 },
+      { label: '25 USDT', amount: 25 },
+      { label: '50 USDT', amount: 50 },
+      { label: '100 USDT', amount: 100 }
+    ];
+
+    const keyboard = {
+      inline_keyboard: prices.map(p => [{
+        text: `${p.label} (${p.amount} Stars)`,
+        callback_data: `pay_${siteUserId}_${p.amount}`
+      }])
+    };
+
+    bot.sendMessage(chatId, "Выберите сумму для пополнения (курс: 1 USDT = 50 Stars):", {
+      reply_markup: keyboard
+    });
+  });
+
+  bot.on('callback_query', async (query) => {
+    const chatId = query.message.chat.id;
+    const data = query.data;
+
+    if (!data.startsWith("pay_")) return;
+
+    const parts = data.split("_");
+    const siteUserId = parts[1];
+    const amount = parseInt(parts[2], 10);
+
+    const starsAmount = amount * 50;
+
+    const title = `Пополнение баланса на ${amount} USDT`;
+    const description = `Зачисление ${amount} USDT на ваш аккаунт RPОбзвон.`;
+    const payload = `site_${siteUserId}_${amount}_${Date.now()}`;
+
+    try {
+      await bot.sendInvoice(
+        chatId,
+        title,
+        description,
+        payload,
+        "XTR",
+        [{
+          label: `${amount} USDT`,
+          amount: starsAmount
+        }],
+        {
+          provider_token: "",
+          currency: "XTR"
+        }
+      );
+      bot.answerCallbackQuery(query.id);
+    } catch (err) {
+      console.error("Ошибка создания счета:", err.message);
+      bot.sendMessage(chatId, "Не удалось создать счет. Попробуйте позже.");
+    }
+  });
+
+  bot.on('pre_checkout_query', (query) => {
+    bot.answerPreCheckoutQuery(query.id, true);
+  });
+
+  bot.on('successful_payment', async (msg) => {
+    const chatId = msg.chat.id;
+    const payment = msg.successful_payment;
+    const payload = payment.invoice_payload;
+    const totalStars = payment.total_amount;
+
+    const parts = payload.split("_");
+    const siteUserId = parts[1];
+    const amountUsdt = parts[2];
+
+    try {
+      const res = await fetch(`http://localhost:${PORT}/api/bot-payment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: siteUserId,
+          amount: amountUsdt,
+          stars: totalStars
+        })
+      });
+
+      const data = await res.json();
+      if (data.ok) {
+        bot.sendMessage(chatId, `✅ Оплата прошла успешно!\n\nБаланс на сайте пополнен на ${amountUsdt} USDT.\nСумма Stars: ${totalStars}`);
+      } else {
+        bot.sendMessage(chatId, `❌ Ошибка зачисления. Обратитесь в поддержку.`);
+      }
+    } catch (err) {
+      console.error("Ошибка зачисления:", err);
+      bot.sendMessage(chatId, "❌ Ошибка сервера. Обратитесь в поддержку.");
+    }
+  });
+} else {
+  console.log("ВНИМАНИЕ: BOT_TOKEN не задан. Бот не запущен.");
+}
+
+// МАРШРУТ ДЛЯ ПРИЕМА ОПЛАТЫ ОТ БОТА
 app.post("/api/bot-payment", async (req, res) => {
   try {
     const { userId, amount, stars } = req.body;
-    // Зачисляем средства (проверку можно усилить, но для старта ок)
     const userRes = await pool.query('UPDATE users SET balance = balance + $1 WHERE id = $2 RETURNING balance', [amount, userId]);
     
     if (userRes.rows.length > 0) {
