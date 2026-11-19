@@ -43,6 +43,14 @@ async function initDb() {
       console.log("Колонка login уже допускает null.");
     }
 
+    // Убираем обязательность (NOT NULL) у колонки password_hash
+    try {
+      await pool.query('ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL;');
+      console.log("Колонка password_hash теперь может быть пустой.");
+    } catch (e) {
+      console.log("Колонка password_hash уже допускает null.");
+    }
+
     // Добавляем колонку telegram_id, если её нет
     try {
       await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS telegram_id BIGINT UNIQUE');
