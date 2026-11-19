@@ -594,7 +594,7 @@
   display: grid;
   place-items: center;
   padding: var(--space-4);
-  z-index: 99999; /* Максимально высокий приоритет */
+  z-index: 99999;
   overflow-y: auto;
 }
 
@@ -842,5 +842,50 @@
   .invoice-row code {
     max-width: 100%;
     text-align: left;
+  }
+}
+
+/* Стили для карточек связи (страница contact.html) */
+.contact-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-5);
+  background: var(--bg-card);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  text-decoration: none;
+  transition: border-color var(--transition-fast);
+}
+
+.contact-card:hover {
+  border-color: var(--accent-2);
+}
+
+.contact-title {
+  color: var(--text-main);
+  font-size: var(--fs-md);
+  margin-bottom: var(--space-1);
+}
+
+.contact-desc {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  margin: 0;
+}
+
+.contact-arrow {
+  color: var(--accent-2);
+  font-size: var(--fs-xl);
+  flex-shrink: 0;
+  margin-left: var(--space-4);
+}
+
+@media (max-width: 480px) {
+  .contact-card {
+    padding: var(--space-4);
+  }
+  .contact-arrow {
+    display: none;
   }
 }
