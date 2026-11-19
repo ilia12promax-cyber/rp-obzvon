@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Личный кабинет — RPОбзвон</title>
+<link rel="stylesheet" href="css/variables.css">
+<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+
+<header class="site-header" id="siteHeader">
+  <div class="header-inner">
+    <a class="brand" href="index.html">RP<span>Обзвон</span></a>
+    <nav class="main-nav" id="mainNav">
+      <a href="index.html" class="nav-link">Главная</a>
+      <a href="obzvon.html" class="nav-link">Обзвоны</a>
+      <a href="https://t.me/rp_obzvon_support" class="nav-link" target="_blank" rel="noopener">Тех. поддержка</a>
+      <a href="contact.html" class="nav-link">Связь</a>
+      <a href="admin.html" class="nav-link nav-admin" id="navAdmin" hidden>Админ-панель</a>
+    </nav>
+    <div class="header-right" id="headerRight"></div>
+  </div>
+</header>
+
+<main class="page-main">
+
+  <section class="section page-head">
+    <h1 class="page-title">Личный кабинет</h1>
+    <p class="page-lead">Ник, аватар и история заказов. Аватар хранится в браузере в Base64.</p>
+  </section>
+
+  <section class="section profile-layout">
+
+    <aside class="profile-side">
+      <div class="profile-card">
+        <div class="avatar-wrap" id="avatarWrap">
+          <canvas id="avatarCanvas" width="128" height="128"></canvas>
+        </div>
+        <div class="profile-meta">
+          <h2 class="profile-nick" id="profileNick">Гость</h2>
+          <p class="profile-id" id="profileId">ID: —</p>
+          <p class="profile-level" id="profileLevel" hidden></p>
+        </div>
+        <div class="profile-actions">
+          <label class="btn btn-outline btn-sm" for="avatarInput">Загрузить аватар</label>
+          <input type="file" id="avatarInput" accept="image/*" hidden>
+        </div>
+        <button class="btn btn-outline btn-block" id="logoutBtn" style="color: var(--danger); border-color: var(--danger); margin-top: var(--space-2);" hidden>Выйти из аккаунта</button>
+      </div>
+
+      <div class="profile-card">
+        <h3 class="card-title">Сменить ник</h3>
+        <div class="field">
+          <label for="nickInput">Новый ник</label>
+          <input type="text" id="nickInput" class="input" maxlength="24" autocomplete="off" placeholder="От 3 до 24 символов">
+        </div>
+        <p class="field-hint" id="nickHint" hidden></p>
+        <button class="btn btn-primary btn-block" id="saveNickBtn" type="button">Сохранить ник</button>
+      </div>
+
+      <div class="profile-card">
+        <h3 class="card-title">Безопасность</h3>
+        <div class="field">
+          <label for="newLoginInput">Логин</label>
+          <input type="text" id="newLoginInput" class="input" autocomplete="off" placeholder="Новый логин">
+        </div>
+        <div class="field">
+          <label for="newPasswordInput">Пароль</label>
+          <input type="password" id="newPasswordInput" class="input" autocomplete="new-password" placeholder="Новый пароль">
+        </div>
+        <p class="field-hint" id="credHint" hidden></p>
+        <button class="btn btn-primary btn-block" id="saveCredBtn" type="button">Сохранить данные</button>
+      </div>
+
+      <div class="profile-card" id="guestCard" hidden>
+        <h3 class="card-title">Вы не вошли</h3>
+        <p class="card-text">Войдите или зарегистрируйтесь, чтобы видеть историю заказов и баланс.</p>
+        <button class="btn btn-primary btn-block" id="guestLoginBtn" type="button">Войти</button>
+        <button class="btn btn-outline btn-block" id="guestRegisterBtn" type="button">Регистрация</button>
+      </div>
+    </aside>
+
+    <div class="profile-main">
+      <div class="profile-card">
+        <h2 class="card-title">История обзвонов</h2>
+        <p class="card-text card-text-muted">Статусы: «Ожидает», «В работе у [ник]», «Завершён».</p>
+        <div class="table-wrap">
+          <table class="data-table" id="ordersTable">
+            <thead>
+              <tr>
+                <th>№</th>
+                <th>Дата</th>
+                <th>Проект</th>
+                <th>Должность</th>
+                <th>Опции</th>
+                <th>Сумма</th>
+                <th>Статус</th>
+              </tr>
+            </thead>
+            <tbody id="ordersTbody"></tbody>
+          </table>
+        </div>
+        <p class="empty-state" id="ordersEmpty" hidden>Заказов пока нет. <a href="obzvon.html">Собрать первый обзвон</a>.</p>
+      </div>
+    </div>
+
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <span>RPОбзвон — обзвоны на игровые RP-проекты</span>
+    <div class="footer-links">
+      <a href="index.html">Главная</a>
+      <a href="obzvon.html">Обзвоны</a>
+      <a href="https://t.me/rp_obzvon_support" target="_blank" rel="noopener">Поддержка</a>
+    </div>
+  </div>
+</footer>
+
+<script src="js/storage.js"></script>
+<script src="js/gramWallet.js"></script>
+<script src="js/common.js"></script>
+</body>
+</html>
