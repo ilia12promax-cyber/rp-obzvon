@@ -13,17 +13,14 @@
 <header class="site-header" id="siteHeader">
   <div class="header-inner">
     <a class="brand" href="index.html">RP<span>Обзвон</span></a>
+    <div class="header-right" id="headerRight"></div>
     <nav class="main-nav" id="mainNav">
       <a href="index.html" class="nav-link">Главная</a>
       <a href="obzvon.html" class="nav-link">Обзвоны</a>
       <a href="https://t.me/rp_obzvon_support" class="nav-link" target="_blank" rel="noopener">Тех. поддержка</a>
-      
-      <!-- ЖЕЛЕЗОБЕТОННЫЙ ВАРИАНТ: onclick прямо в HTML -->
-      <button class="nav-link nav-dropdown-btn" id="contactBtn" type="button" onclick="var m = document.getElementById('contactModal'); if(m){ m.hidden = false; document.body.style.overflow = 'hidden'; }">Связь</button>
-      
+      <a href="contact.html" class="nav-link">Связь</a>
       <a href="admin.html" class="nav-link nav-admin active" id="navAdmin" hidden>Админ-панель</a>
     </nav>
-    <div class="header-right" id="headerRight"></div>
   </div>
 </header>
 
@@ -78,7 +75,7 @@
   <section class="section admin-panel" id="panelPrices" hidden>
     <div class="panel-head">
       <h2 class="card-title">Базовые цены, USDT</h2>
-      <p class="card-text card-text-muted">Изменения сохраняются в localStorage и сразу действуют на странице obzvon.html.</p>
+      <p class="card-text card-text-muted">Изменения сохраняются в базе и сразу действуют на странице obzvon.html.</p>
     </div>
 
     <div class="price-groups">
@@ -98,7 +95,6 @@
 
     <div class="panel-actions">
       <button class="btn btn-primary" id="savePricesBtn" type="button">Сохранить цены</button>
-      <button class="btn btn-outline" id="resetPricesBtn" type="button">Сбросить к заводским</button>
       <span class="save-note" id="priceSaveNote" hidden>Цены сохранены</span>
     </div>
   </section>
@@ -112,7 +108,7 @@
     <div class="staff-form">
       <div class="field">
         <label for="staffIdInput">ID пользователя</label>
-        <input type="text" id="staffIdInput" class="input" placeholder="Например, 10482" autocomplete="off">
+        <input type="text" id="staffIdInput" class="input" placeholder="Например, 2" autocomplete="off">
       </div>
       <div class="field">
         <label for="staffLevelInput">Уровень (0–10)</label>
@@ -128,6 +124,7 @@
           <tr>
             <th>ID</th>
             <th>Ник</th>
+            <th>Логин</th>
             <th>Уровень</th>
             <th>Баланс</th>
           </tr>
@@ -149,21 +146,6 @@
     </div>
   </div>
 </footer>
-
-<!-- Модалка "Связь" с кнопкой закрытия, которая тоже работает напрямую -->
-<div class="modal-backdrop" id="contactModal" hidden>
-  <div class="modal">
-    <div class="modal-head">
-      <h3>Связь</h3>
-      <button class="modal-close" type="button" onclick="document.getElementById('contactModal').hidden = true; document.body.style.overflow = '';">×</button>
-    </div>
-    <div class="modal-body">
-      <a class="contact-link" href="https://t.me/rp_obzvon_channel" target="_blank" rel="noopener">Telegram-канал — анонсы и разборы обзвонов</a>
-      <a class="contact-link" href="https://tiktok.com/@rp_obzvon" target="_blank" rel="noopener">TikTok — короткие разборы вопросов</a>
-      <a class="contact-link" href="https://t.me/rp_obzvon_support" target="_blank" rel="noopener">Telegram-бот поддержки</a>
-    </div>
-  </div>
-</div>
 
 <script src="js/storage.js"></script>
 <script src="js/gramWallet.js"></script>
