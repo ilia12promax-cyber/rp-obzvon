@@ -408,14 +408,11 @@
 @media (max-width: 960px) {
   .header-inner { justify-content: space-between; }
   .main-nav {
-    order: 3;
-    width: 100%;
-    overflow-x: auto;
-    padding-bottom: var(--space-2);
-    border-bottom: 1px solid var(--border);
-    gap: var(--space-4);
-    justify-content: flex-start;
-  }
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  /* Убираем flex: 1, чтобы навигация не растягивалась */
+}
   .header-right { order: 2; }
 
   .hero { grid-template-columns: 1fr; gap: var(--space-6); }
