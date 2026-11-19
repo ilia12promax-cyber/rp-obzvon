@@ -21,7 +21,6 @@ const API_URL = "https://pay.crypt.bot/api/";
 // ================= ИНИЦИАЛИЗАЦИЯ БАЗЫ ДАННЫХ =================
 async function initDb() {
   try {
-    // Создаем таблицу, если её нет
     await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
@@ -31,11 +30,20 @@ async function initDb() {
         level INTEGER DEFAULT 0,
         balance DECIMAL(10, 2) DEFAULT 0.00,
         avatar TEXT,
+        telegram_id BIGINT UNIQUE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
 
-    // ПРИНУДИТЕЛЬНО добавляем колонку telegram_id, если её нет
+    // Убираем обязательность (NOT NULL) у колонки login
+    try {
+      await pool.query('ALTER TABLE users ALTER COLUMN login DROP NOT NULL;');
+      console.log("Колонка login теперь может быть пустой.");
+    } catch (e) {
+      console.log("Колонка login уже допускает null.");
+    }
+
+    // Добавляем колонку telegram_id, если её нет
     try {
       await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS telegram_id BIGINT UNIQUE');
       console.log("Колонка telegram_id проверена/добавлена.");
@@ -43,7 +51,6 @@ async function initDb() {
       console.log("Колонка telegram_id уже существует.");
     }
 
-    // Остальные таблицы
     await pool.query(`
       CREATE TABLE IF NOT EXISTS orders (
         id SERIAL PRIMARY KEY,
@@ -145,7 +152,6 @@ app.post("/api/auth-telegram", async (req, res) => {
 
     const tgId = data.id;
     const nick = data.first_name || data.username || "User";
-    const username = data.username ? "@" + data.username : null;
 
     let userRes = await pool.query('SELECT * FROM users WHERE telegram_id = $1', [tgId]);
     let user;
@@ -169,9 +175,6 @@ app.post("/api/auth-telegram", async (req, res) => {
     res.status(500).json({ error: "Внутренняя ошибка сервера при авторизации." });
   }
 });
-
-// ... Остальные маршруты (register, login, update-profile, prices, orders, users, create-invoice, check-payment, bot-payment) оставь без изменений ...
-// Я не буду их дублировать, чтобы не раздувать ответ. Они остаются точно такими же, как в прошлом файле.
 
 app.post("/api/register", async (req, res) => {
   try {
@@ -348,7 +351,7 @@ app.post("/api/check-payment", async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// TELEGRAM BOT
+// ================= TELEGRAM BOT =================
 if (BOT_TOKEN) {
   const bot = new TelegramBot(BOT_TOKEN, { polling: true });
   console.log("Telegram-бот запущен...");
