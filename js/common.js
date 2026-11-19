@@ -6,8 +6,11 @@
 
   if (!S || !G) return;
 
+  // ВСТАВЬ СЮДА ИМЯ СВОЕГО БОТА (без @)
+  var BOT_USERNAME = "RP_0BZVON_bot"; 
+
   var state = {
-    currentUser: null, // Теперь храним пользователя в памяти
+    currentUser: null,
     obzvon: {
       projectKey: null,
       positionKey: null,
@@ -141,14 +144,19 @@
       "topupModal",
       '<div class="modal">' +
         '<div class="modal-head">' +
-          "<h3>Пополнение через CryptoBot</h3>" +
+          "<h3>Пополнение баланса</h3>" +
           '<button class="modal-close" type="button" data-close-modal="topupModal">×</button>' +
         "</div>" +
         '<div class="modal-body">' +
           '<div id="topupStep1">' +
             '<div class="field"><label>Сумма, USDT</label><input class="input" id="topupAmount" type="number" min="1" step="0.5" value="10"></div>' +
-            '<div class="form-error" id="topupError" hidden></div>' +
-            '<div class="modal-actions"><button class="btn btn-primary btn-block" id="createInvoiceBtn" type="button">Создать инвойс</button></div>' +
+            
+            '<div style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">' +
+              '<button class="btn btn-primary btn-block" id="createInvoiceBtn" type="button">Оплатить через CryptoBot (USDT)</button>' +
+              '<button class="btn btn-outline btn-block" id="payStarsBtn" type="button">Оплатить Telegram Stars</button>' +
+            '</div>' +
+            
+            '<div class="form-error" id="topupError" hidden style="margin-top: 10px;"></div>' +
           "</div>" +
           '<div id="topupStep2" hidden>' +
             '<div class="invoice-box" id="invoiceBox"></div>' +
@@ -218,8 +226,6 @@
     var id = S.getCurrentUserId();
     if (!id) { state.currentUser = null; return; }
     
-    // Делаем фиктивный запрос к API, чтобы получить актуальные данные
-    // (в идеале нужен эндпоинт /api/user/:id, но мы используем существующий /users)
     try {
       var users = await S.getUsers();
       var me = users.find(u => String(u.id) === String(id));
@@ -299,6 +305,8 @@
 
     var topupModal = q("topupModal");
     if (topupModal) {
+      
+      // ОПЛАТА ЧЕРЕЗ CRYPTOBOT
       q("createInvoiceBtn").addEventListener("click", async function () {
         var errEl = q("topupError");
         errEl.hidden = true;
@@ -310,7 +318,7 @@
 
         var res = await G.createInvoice(state.currentUser.id, amount, "USDT");
         q("createInvoiceBtn").disabled = false;
-        q("createInvoiceBtn").textContent = "Создать инвойс";
+        q("createInvoiceBtn").textContent = "Оплатить через CryptoBot (USDT)";
 
         if (!res.ok) { errEl.textContent = res.error; errEl.hidden = false; return; }
         
@@ -320,6 +328,19 @@
         q("topupStep2").hidden = false;
         q("checkError").hidden = true;
         q("checkSuccess").hidden = true;
+      });
+
+      // ОПЛАТА ЧЕРЕЗ TELEGRAM STARS
+      q("payStarsBtn").addEventListener("click", function () {
+        if (!state.currentUser) { window.showToast("Войдите в аккаунт", "error"); return; }
+        
+        // Формируем ссылку на бота с ID пользователя
+        var botLink = "https://t.me/" + BOT_USERNAME + "?start=pay_" + state.currentUser.id;
+        
+        // Открываем в новой вкладке
+        window.open(botLink, "_blank");
+        closeModal("topupModal");
+        window.showToast("Перейдите в бота и оплатите Stars. После оплаты баланс пополнится автоматически.", "success");
       });
 
       q("checkPaymentBtn").addEventListener("click", async function () {
@@ -345,7 +366,7 @@
         
         okEl.textContent = "Зачислено " + money(res.amount) + ".";
         okEl.hidden = false;
-        await fetchUserData(); // Обновляем баланс
+        await fetchUserData();
         renderHeader();
         afterAuthChange();
       });
@@ -657,19 +678,29 @@
         var newPass = q("newPasswordInput").value;
         if (newLogin.length < 3) { window.showToast("Логин минимум 3 символа", "error"); return; }
         
+        var payload = { 
+          nick: state.currentUser.nick, 
+          avatar: state.currentUser.avatar,
+          newLogin: newLogin
+        };
+
+        if (newPass && newPass.length > 0) {
+            if (newPass.length < 4) { window.showToast("Пароль минимум 4 символа", "error"); return; }
+            payload.newPassword = newPass;
+        }
+        
         try {
-          var res = await S.updateProfile(state.currentUser.id, { 
-            nick: state.currentUser.nick, 
-            avatar: state.currentUser.avatar,
-            newLogin: newLogin, 
-            newPassword: newPass 
-          });
+          var res = await S.updateProfile(state.currentUser.id, payload);
           state.currentUser = res.user;
           window.showToast("Данные для входа сохранены");
+          
+          if (q("newPasswordInput")) q("newPasswordInput").value = "";
+
           if (q("credHint")) {
             q("credHint").textContent = "Данные обновлены";
             q("credHint").className = "field-hint field-hint-success";
             q("credHint").hidden = false;
+            setTimeout(function() { q("credHint").hidden = true; }, 3000);
           }
         } catch (err) { window.showToast(err.message, "error"); }
       };
