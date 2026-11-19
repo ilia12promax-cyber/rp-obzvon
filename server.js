@@ -9,7 +9,7 @@ app.use(cors());
 app.use(express.json());
 
 // ВСТАВЬ СЮДА СВОЙ INTERNAL DATABASE URL ИЗ RENDER
-const dbUrl = "ВСТАВЬ_СЮДА_ТВОЙ_INTERNAL_DATABASE_URL";
+const dbUrl = "postgresql://rp_obzvon_db_user:JVM6l4xiQwgTrWTDjKUAoEwR1yaNRjlO@dpg-dbvkd5ec6qcc739nj84g-a/rp_obzvon_db";
 const pool = new Pool({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
 
 const CRYPTO_PAY_TOKEN = process.env.CRYPTO_PAY_TOKEN;
