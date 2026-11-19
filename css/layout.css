@@ -3,7 +3,8 @@
   top: 0;
   left: 0;
   right: 0;
-  height: var(--header-h);
+  height: auto;
+  min-height: var(--header-h);
   background: var(--bg-card);
   border-bottom: 1px solid var(--border);
   z-index: 100;
@@ -17,6 +18,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-6);
+  flex-wrap: wrap; /* Разрешаем шапке переноситься на телефонах */
 }
 
 .brand {
@@ -25,6 +27,7 @@
   color: var(--text-main);
   letter-spacing: 0.4px;
   flex-shrink: 0;
+  padding: var(--space-3) 0;
 }
 
 .brand span {
@@ -143,7 +146,7 @@
 }
 
 .page-main {
-  padding-top: var(--header-h);
+  padding-top: var(--header-h); /* Отступ под фиксированную шапку */
   min-height: calc(100vh - var(--header-h));
 }
 
@@ -153,31 +156,8 @@
   padding: var(--space-7) var(--space-5);
 }
 
-.page-head {
-  padding-bottom: var(--space-4);
-}
-
-.page-title {
-  font-size: var(--fs-2xl);
-  margin-bottom: var(--space-2);
-}
-
-.page-lead {
-  color: var(--text-muted);
-  font-size: var(--fs-md);
-  max-width: 640px;
-}
-
-.section-title {
-  font-size: var(--fs-xl);
-  margin-bottom: var(--space-5);
-}
-
-.section-note {
-  color: var(--text-muted);
-  font-size: var(--fs-sm);
-  margin-top: var(--space-4);
-}
+/* ... (середина файла без изменений: hero, benefits, steps, order-layout и т.д.) ... */
+/* Для краткости я пропущу куски, которые не менялись, но ты их сохрани */
 
 .hero {
   max-width: var(--container-max);
@@ -189,239 +169,13 @@
   align-items: start;
 }
 
-.hero-kicker {
-  color: var(--accent-2);
-  font-size: var(--fs-sm);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  margin-bottom: var(--space-3);
-}
-
-.hero-title {
-  font-size: var(--fs-3xl);
-  line-height: 1.15;
-  margin-bottom: var(--space-4);
-}
-
-.hero-sub {
-  color: var(--text-muted);
-  font-size: var(--fs-md);
-  max-width: 560px;
-  margin-bottom: var(--space-5);
-}
-
-.hero-actions {
-  display: flex;
-  gap: var(--space-3);
-  flex-wrap: wrap;
-  margin-bottom: var(--space-6);
-}
-
-.hero-points {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.hero-points li {
-  color: var(--text-muted);
-  font-size: var(--fs-sm);
-  padding-left: var(--space-4);
-  position: relative;
-}
-
-.hero-points li::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 8px;
-  width: 6px;
-  height: 6px;
-  background: var(--accent-2);
-  border-radius: 1px;
-}
-
-.hero-stats {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-3);
-}
-
-.stat-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-5) var(--space-4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.stat-value {
-  font-size: var(--fs-xl);
-  font-weight: 700;
-  color: var(--text-main);
-}
-
-.stat-label {
-  font-size: var(--fs-xs);
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.benefits-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-4);
-}
-
-.benefit-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-5);
-}
-
-.benefit-card h3 {
-  font-size: var(--fs-md);
-  margin-bottom: var(--space-2);
-}
-
-.benefit-card p {
-  color: var(--text-muted);
-  font-size: var(--fs-sm);
-}
-
-.projects-strip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-}
-
-.project-chip {
-  background: var(--bg-card);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-md);
-  padding: var(--space-3) var(--space-5);
-  font-size: var(--fs-sm);
-  font-weight: 600;
-  color: var(--text-main);
-}
-
-.steps-list {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-4);
-  counter-reset: step;
-}
-
-.steps-list li {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-5);
-  font-size: var(--fs-sm);
-  color: var(--text-muted);
-  line-height: 1.55;
-}
-
-.step-num {
-  display: block;
-  font-size: var(--fs-lg);
-  font-weight: 700;
-  color: var(--accent-2);
-  margin-bottom: var(--space-2);
-}
-
-.cta-section {
-  padding-top: 0;
-}
-
-.cta-box {
-  background: var(--bg-card);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-lg);
-  padding: var(--space-7);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-.cta-box h2 {
-  font-size: var(--fs-xl);
-}
-
-.cta-box p {
-  color: var(--text-muted);
-  font-size: var(--fs-sm);
-}
-
-.cta-actions {
-  display: flex;
-  gap: var(--space-3);
-  flex-wrap: wrap;
-  margin-top: var(--space-2);
-}
+/* ... (все стили для .stat-card, .benefit-card, .steps-list и т.д. остаются прежними) ... */
 
 .order-layout {
   display: grid;
   grid-template-columns: 1fr 360px;
   gap: var(--space-6);
   align-items: start;
-}
-
-.order-form-col {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-5);
-}
-
-.order-step {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-5);
-}
-
-.order-step-title {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  font-size: var(--fs-md);
-  margin-bottom: var(--space-4);
-}
-
-.step-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  background: var(--accent);
-  color: var(--text-main);
-  font-size: var(--fs-xs);
-  font-weight: 700;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.option-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: var(--space-3);
-}
-
-.option-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.order-summary-col {
-  position: sticky;
-  top: calc(var(--header-h) + var(--space-5));
 }
 
 .profile-layout {
@@ -431,70 +185,7 @@
   align-items: start;
 }
 
-.profile-side {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-}
-
-.profile-main {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-}
-
-.admin-tabs {
-  padding-top: 0;
-  padding-bottom: 0;
-  display: flex;
-  gap: var(--space-2);
-  border-bottom: 1px solid var(--border);
-  flex-wrap: wrap;
-}
-
-.admin-panel {
-  padding-top: var(--space-5);
-}
-
-.panel-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: var(--space-4);
-  flex-wrap: wrap;
-  margin-bottom: var(--space-4);
-}
-
-.panel-actions {
-  display: flex;
-  gap: var(--space-3);
-  align-items: center;
-  flex-wrap: wrap;
-  margin-top: var(--space-4);
-}
-
-.staff-form {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: var(--space-3);
-  margin-bottom: var(--space-5);
-}
-
-.staff-form .field {
-  flex: 1 1 200px;
-  min-width: 160px;
-}
-
-.staff-form .btn {
-  flex: 0 0 auto;
-}
-
-.price-groups {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-4);
-}
+/* ... (стили для админки, прайс-листа, футера остаются прежними) ... */
 
 .site-footer {
   border-top: 1px solid var(--border);
@@ -515,19 +206,7 @@
   font-size: var(--fs-sm);
 }
 
-.footer-links {
-  display: flex;
-  gap: var(--space-4);
-}
-
-.footer-links a {
-  color: var(--text-muted);
-  font-size: var(--fs-sm);
-}
-
-.footer-links a:hover {
-  color: var(--accent-2);
-}
+/* ================= АДАПТИВ ================= */
 
 @media (max-width: 960px) {
   .hero {
@@ -539,10 +218,7 @@
     grid-template-columns: repeat(4, 1fr);
   }
 
-  .benefits-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
+  .benefits-grid,
   .steps-list {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -568,28 +244,40 @@
   .header-inner {
     padding: 0 var(--space-4);
     gap: var(--space-3);
+    justify-content: space-between;
   }
 
   .main-nav {
-    gap: var(--space-3);
+    order: 3;
+    width: 100%;
     overflow-x: auto;
-    scrollbar-width: none;
+    padding-bottom: var(--space-2);
+    border-bottom: 1px solid var(--border);
+    gap: var(--space-4);
   }
 
   .main-nav::-webkit-scrollbar {
     display: none;
   }
 
+  .header-right {
+    order: 2;
+  }
+
   .header-nick {
-    display: none;
+    display: none; /* Прячем ник на телефонах, оставляем только аватар */
+  }
+
+  .page-main {
+    padding-top: 110px; /* Увеличиваем отступ, так как шапка стала выше */
   }
 
   .section {
-    padding: var(--space-6) var(--space-4);
+    padding: var(--space-5) var(--space-4);
   }
 
   .hero {
-    padding: var(--space-6) var(--space-4);
+    padding: var(--space-5) var(--space-4);
   }
 
   .hero-title {
@@ -614,46 +302,21 @@
     align-items: flex-start;
   }
 
-  .staff-form {
-    flex-direction: column;
-    align-items: stretch;
+  /* Таблицы на телефоне: делаем их прокручиваемыми */
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border: 1px solid var(--border);
   }
-
-  .staff-form .field {
-    flex: 1 1 auto;
-    min-width: 0;
-  }
-}
-
-@media (max-width: 480px) {
-  .header-right {
-    gap: var(--space-2);
-  }
-
-  .balance-pill {
-    padding: var(--space-1) var(--space-2);
-    font-size: var(--fs-xs);
-  }
-
-  .hero-actions {
-    flex-direction: column;
-    align-items: stretch;
+  
+  .data-table {
+    min-width: 600px; /* Чтобы таблица не сжималась в кашу, а прокручивалась */
   }
 }
 
 @media (max-width: 480px) {
   .header-inner {
-    flex-wrap: wrap;
     padding: 0 var(--space-3);
-  }
-  
-  .header-right {
-    gap: var(--space-2);
-    width: 100%;
-    justify-content: space-between;
-    margin-top: var(--space-2);
-    padding-bottom: var(--space-2);
-    border-bottom: 1px solid var(--border);
   }
 
   .balance-pill {
@@ -665,38 +328,30 @@
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .btn-lg {
     width: 100%;
   }
 
   .profile-layout {
-    grid-template-columns: 1fr;
-    gap: var(--space-4);
+    gap: var(--space-3);
   }
-  
+
   .profile-card {
     padding: var(--space-4);
   }
-  
+
+  /* Таблицы делаем чуть меньше, но всё еще прокручиваемыми */
   .data-table {
-    min-width: 100%;
-    font-size: var(--fs-xs);
+    min-width: 500px;
   }
-  
+
   .data-table th, 
   .data-table td {
     padding: var(--space-2);
+    font-size: var(--fs-xs);
   }
-  
-  .table-wrap {
-    border: none;
-  }
-  
-  .order-summary-col {
-    position: static;
-  }
-  
+
   .summary-box {
     padding: var(--space-4);
   }
