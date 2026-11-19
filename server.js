@@ -11,7 +11,7 @@ app.use(express.json());
 app.use(express.static(__dirname)); // Раздаем статику
 
 // ВСТАВЬ СЮДА СВОЙ INTERNAL DATABASE URL ИЗ RENDER
-const dbUrl = process.env.DATABASE_URL || "ВСТАВЬ_СЮДА_ТВОЙ_INTERNAL_DATABASE_URL";
+const dbUrl = process.env.DATABASE_URL || "postgresql://rp_obzvon_db_user:JVM6l4xiQwgTrWTDjKUAoEwR1yaNRjlO@dpg-dbvkd5ec6qcc739nj84g-a/rp_obzvon_db";
 const pool = new Pool({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
 
 const CRYPTO_PAY_TOKEN = process.env.CRYPTO_PAY_TOKEN;
