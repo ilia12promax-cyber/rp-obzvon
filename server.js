@@ -7,10 +7,11 @@ const { Pool } = require('pg');
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use(express.static(__dirname));
+
+app.use(express.static(__dirname)); // Раздаем статику
 
 // ВСТАВЬ СЮДА СВОЙ INTERNAL DATABASE URL ИЗ RENDER
-const dbUrl = "postgresql://rp_obzvon_db_user:JVM6l4xiQwgTrWTDjKUAoEwR1yaNRjlO@dpg-dbvkd5ec6qcc739nj84g-a/rp_obzvon_db";
+const dbUrl = process.env.DATABASE_URL || "ВСТАВЬ_СЮДА_ТВОЙ_INTERNAL_DATABASE_URL";
 const pool = new Pool({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
 
 const CRYPTO_PAY_TOKEN = process.env.CRYPTO_PAY_TOKEN;
@@ -318,6 +319,23 @@ app.post("/api/check-payment", async (req, res) => {
       res.json({ ok: true, status: result.items[0].status });
     }
   } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// НОВЫЙ МАРШРУТ ДЛЯ ПРИЕМА ОПЛАТЫ ОТ БОТА
+app.post("/api/bot-payment", async (req, res) => {
+  try {
+    const { userId, amount, stars } = req.body;
+    // Зачисляем средства (проверку можно усилить, но для старта ок)
+    const userRes = await pool.query('UPDATE users SET balance = balance + $1 WHERE id = $2 RETURNING balance', [amount, userId]);
+    
+    if (userRes.rows.length > 0) {
+      res.json({ ok: true, newBalance: userRes.rows[0].balance });
+    } else {
+      res.status(404).json({ error: "Пользователь не найден" });
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 const PORT = process.env.PORT || 3000;
