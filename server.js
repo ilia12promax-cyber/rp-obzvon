@@ -7,6 +7,7 @@ const { Pool } = require('pg');
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(express.static(__dirname));
 
 // ВСТАВЬ СЮДА СВОЙ INTERNAL DATABASE URL ИЗ RENDER
 const dbUrl = "postgresql://rp_obzvon_db_user:JVM6l4xiQwgTrWTDjKUAoEwR1yaNRjlO@dpg-dbvkd5ec6qcc739nj84g-a/rp_obzvon_db";
