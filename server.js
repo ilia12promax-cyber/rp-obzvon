@@ -4,6 +4,7 @@ const fetch = require('node-fetch');
 const bcrypt = require('bcryptjs');
 const { Pool } = require('pg');
 const TelegramBot = require('node-telegram-bot-api');
+const crypto = require('crypto');
 
 const app = express();
 app.use(cors());
@@ -15,6 +16,7 @@ const dbUrl = process.env.DATABASE_URL || "postgresql://rp_obzvon_db_user:JVM6l4
 const pool = new Pool({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
 
 const CRYPTO_PAY_TOKEN = process.env.CRYPTO_PAY_TOKEN;
+const BOT_TOKEN = process.env.BOT_TOKEN;
 const API_URL = "https://pay.crypt.bot/api/";
 
 // ================= ИНИЦИАЛИЗАЦИЯ БАЗЫ ДАННЫХ =================
@@ -23,15 +25,21 @@ async function initDb() {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
-        login VARCHAR(50) UNIQUE NOT NULL,
-        password_hash VARCHAR(255) NOT NULL,
+        login VARCHAR(50) UNIQUE,
+        password_hash VARCHAR(255),
         nick VARCHAR(50) NOT NULL,
         level INTEGER DEFAULT 0,
         balance DECIMAL(10, 2) DEFAULT 0.00,
         avatar TEXT,
+        telegram_id BIGINT UNIQUE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
+
+    // Добавляем колонку telegram_id, если её нет (для старых баз)
+    try {
+      await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS telegram_id BIGINT UNIQUE');
+    } catch (e) { /* колонка уже есть */ }
 
     await pool.query(`
       CREATE TABLE IF NOT EXISTS orders (
@@ -96,7 +104,73 @@ async function initDb() {
 }
 initDb();
 
+// ================= ПРОВЕРКА ПОДПИСИ TELEGRAM =================
+function checkTelegramSignature(data, botToken) {
+  const { hash, ...fields } = data;
+  if (!hash || !botToken) return false;
+
+  // Сортируем поля по алфавиту и склеиваем
+  const checkString = Object.keys(fields)
+    .sort()
+    .filter(k => fields[k] !== undefined && fields[k] !== null && fields[k] !== '')
+    .map(k => `${k}=${fields[k]}`)
+    .join('\n');
+
+  // Секретный ключ = SHA256(токен бота)
+  const secretKey = crypto.createHash('sha256').update(botToken).digest();
+  
+  // HMAC-SHA256
+  const hmac = crypto.createHmac('sha256', secretKey).update(checkString).digest('hex');
+
+  return hmac === hash;
+}
+
 // ================= API САЙТА =================
+
+// ВХОД/РЕГИСТРАЦИЯ ЧЕРЕЗ TELEGRAM
+app.post("/api/auth-telegram", async (req, res) => {
+  try {
+    const data = req.body;
+    
+    // Проверяем подпись
+    if (!checkTelegramSignature(data, BOT_TOKEN)) {
+      return res.status(400).json({ error: "Неверная подпись Telegram. Попробуйте еще раз." });
+    }
+
+    // Проверяем, что данные не старше 5 минут (защита от replay-атак)
+    const authDate = parseInt(data.auth_date, 10);
+    const now = Math.floor(Date.now() / 1000);
+    if (now - authDate > 300) {
+      return res.status(400).json({ error: "Ссылка авторизации устарела. Попробуйте снова." });
+    }
+
+    const tgId = data.id;
+    const nick = data.first_name || data.username || "User";
+    const username = data.username ? "@" + data.username : null;
+
+    // Ищем пользователя по telegram_id
+    let userRes = await pool.query('SELECT * FROM users WHERE telegram_id = $1', [tgId]);
+    let user;
+
+    if (userRes.rows.length > 0) {
+      // Пользователь уже есть — входим
+      user = userRes.rows[0];
+    } else {
+      // Новый пользователь — регистрируем
+      const insertRes = await pool.query(
+        'INSERT INTO users (nick, telegram_id, avatar) VALUES ($1, $2, $3) RETURNING *',
+        [nick, tgId, data.photo_url || null]
+      );
+      user = insertRes.rows[0];
+    }
+
+    res.json({ ok: true, user: { id: user.id, nick: user.nick, level: user.level, balance: user.balance, avatar: user.avatar } });
+  } catch (err) {
+    console.error("Telegram auth error:", err);
+    res.status(500).json({ error: "Ошибка сервера при авторизации" });
+  }
+});
+
 app.post("/api/register", async (req, res) => {
   try {
     const { login, password, nick } = req.body;
@@ -123,6 +197,8 @@ app.post("/api/login", async (req, res) => {
     if (result.rows.length === 0) return res.status(400).json({ error: "Пользователь не найден" });
     
     const user = result.rows[0];
+    if (!user.password_hash) return res.status(400).json({ error: "Этот аккаунт привязан к Telegram. Войдите через Telegram." });
+    
     const valid = await bcrypt.compare(password, user.password_hash);
     if (!valid) return res.status(400).json({ error: "Неверный пароль" });
 
@@ -131,6 +207,8 @@ app.post("/api/login", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// ... ОСТАЛЬНЫЕ МАРШРУТЫ (update-profile, prices, orders, users, create-invoice, check-payment, bot-payment) ОСТАВЬ БЕЗ ИЗМЕНЕНИЙ ...
 
 app.post("/api/update-profile", async (req, res) => {
   try {
@@ -321,8 +399,7 @@ app.post("/api/check-payment", async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ================= TELEGRAM BOT (ВСТРОЕННЫЙ) =================
-const BOT_TOKEN = process.env.BOT_TOKEN;
+// ================= TELEGRAM BOT =================
 if (BOT_TOKEN) {
   const bot = new TelegramBot(BOT_TOKEN, { polling: true });
   console.log("Telegram-бот запущен и слушает сообщения...");
@@ -441,7 +518,6 @@ if (BOT_TOKEN) {
   console.log("ВНИМАНИЕ: BOT_TOKEN не задан. Бот не запущен.");
 }
 
-// МАРШРУТ ДЛЯ ПРИЕМА ОПЛАТЫ ОТ БОТА
 app.post("/api/bot-payment", async (req, res) => {
   try {
     const { userId, amount, stars } = req.body;
