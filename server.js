@@ -35,7 +35,6 @@ async function initDb() {
       );
     `);
 
-    // Убираем обязательность (NOT NULL) у колонки login
     try {
       await pool.query('ALTER TABLE users ALTER COLUMN login DROP NOT NULL;');
       console.log("Колонка login теперь может быть пустой.");
@@ -43,7 +42,6 @@ async function initDb() {
       console.log("Колонка login уже допускает null.");
     }
 
-    // Убираем обязательность (NOT NULL) у колонки password_hash
     try {
       await pool.query('ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL;');
       console.log("Колонка password_hash теперь может быть пустой.");
@@ -51,7 +49,6 @@ async function initDb() {
       console.log("Колонка password_hash уже допускает null.");
     }
 
-    // Добавляем колонку telegram_id, если её нет
     try {
       await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS telegram_id BIGINT UNIQUE');
       console.log("Колонка telegram_id проверена/добавлена.");
@@ -122,65 +119,92 @@ async function initDb() {
 }
 initDb();
 
-// ================= ПРОВЕРКА ПОДПИСИ TELEGRAM =================
+// ================= ПРОВЕРКИ ПОДПИСЕЙ =================
 function checkTelegramSignature(data, botToken) {
   const { hash, ...fields } = data;
   if (!hash || !botToken) return false;
-
-  const checkString = Object.keys(fields)
-    .sort()
-    .filter(k => fields[k] !== undefined && fields[k] !== null && fields[k] !== '')
-    .map(k => `${k}=${fields[k]}`)
-    .join('\n');
-
+  const checkString = Object.keys(fields).sort().filter(k => fields[k] !== undefined && fields[k] !== null && fields[k] !== '').map(k => `${k}=${fields[k]}`).join('\n');
   const secretKey = crypto.createHash('sha256').update(botToken).digest();
   const hmac = crypto.createHmac('sha256', secretKey).update(checkString).digest('hex');
-
   return hmac === hash;
+}
+
+function checkMiniAppSignature(initData, botToken) {
+  if (!initData || !botToken) return false;
+  const params = new URLSearchParams(initData);
+  const hash = params.get("hash");
+  if (!hash) return false;
+  params.delete("hash");
+  const dataCheckString = Array.from(params.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => `${k}=${v}`).join("\n");
+  const secretKey = crypto.createHmac('sha256', 'WebAppData').update(botToken).digest();
+  const computedHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
+  return computedHash === hash;
 }
 
 // ================= API САЙТА =================
 
+// Вход через Mini App (изнутри Telegram)
+app.post("/api/auth-miniapp", async (req, res) => {
+  try {
+    const { initData } = req.body;
+    if (!checkMiniAppSignature(initData, BOT_TOKEN)) {
+      return res.status(400).json({ error: "Неверная подпись Mini App." });
+    }
+    const params = new URLSearchParams(initData);
+    const userJson = params.get("user");
+    if (!userJson) return res.status(400).json({ error: "Нет данных пользователя." });
+    const tgUser = JSON.parse(userJson);
+    const tgId = tgUser.id;
+    const nick = tgUser.first_name || tgUser.username || "User";
+    
+    let userRes = await pool.query('SELECT * FROM users WHERE telegram_id = $1', [tgId]);
+    let user;
+    if (userRes.rows.length > 0) {
+      user = userRes.rows[0];
+    } else {
+      const insertRes = await pool.query(
+        'INSERT INTO users (nick, telegram_id, avatar) VALUES ($1, $2, $3) RETURNING *',
+        [nick, tgId, tgUser.photo_url || null]
+      );
+      user = insertRes.rows[0];
+    }
+    res.json({ ok: true, user: { id: user.id, nick: user.nick, level: user.level, balance: user.balance, avatar: user.avatar } });
+  } catch (err) {
+    console.error("Ошибка Mini App auth:", err);
+    res.status(500).json({ error: "Ошибка сервера." });
+  }
+});
+
+// Вход через виджет (в браузере)
 app.post("/api/auth-telegram", async (req, res) => {
   try {
     const data = req.body;
-    console.log("Получены данные от Telegram:", data);
-
     if (!checkTelegramSignature(data, BOT_TOKEN)) {
-      console.error("Ошибка: Неверная подпись Telegram.");
       return res.status(400).json({ error: "Неверная подпись Telegram." });
     }
-
     const authDate = parseInt(data.auth_date, 10);
     const now = Math.floor(Date.now() / 1000);
     if (now - authDate > 300) {
-      console.error("Ошибка: Ссылка авторизации устарела.");
       return res.status(400).json({ error: "Ссылка авторизации устарела." });
     }
-
     const tgId = data.id;
     const nick = data.first_name || data.username || "User";
-
+    
     let userRes = await pool.query('SELECT * FROM users WHERE telegram_id = $1', [tgId]);
     let user;
-
     if (userRes.rows.length > 0) {
       user = userRes.rows[0];
-      console.log("Пользователь найден:", user.id);
     } else {
-      console.log("Создаем нового пользователя...");
       const insertRes = await pool.query(
         'INSERT INTO users (nick, telegram_id, avatar) VALUES ($1, $2, $3) RETURNING *',
         [nick, tgId, data.photo_url || null]
       );
       user = insertRes.rows[0];
-      console.log("Пользователь создан:", user.id);
     }
-
     res.json({ ok: true, user: { id: user.id, nick: user.nick, level: user.level, balance: user.balance, avatar: user.avatar } });
   } catch (err) {
-    console.error("ОШИБКА В API /api/auth-telegram:", err);
-    res.status(500).json({ error: "Внутренняя ошибка сервера при авторизации." });
+    console.error("Ошибка API /api/auth-telegram:", err);
+    res.status(500).json({ error: "Внутренняя ошибка сервера." });
   }
 });
 
