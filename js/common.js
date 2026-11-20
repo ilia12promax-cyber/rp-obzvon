@@ -33,7 +33,7 @@
     div.className = "toast toast-" + (type || "success");
     div.textContent = msg;
     document.body.appendChild(div);
-    setTimeout(function () { if (div.parentNode) div.remove(); }, 3200);
+    setTimeout(function () { if (div.parentNode) div.remove(); }, 5000);
   };
 
   function initials(nick) {
@@ -113,7 +113,6 @@
             'Войдите через Telegram за пару секунд или используйте логин и пароль.' +
           '</div>' +
           
-          // Виджет Telegram
           '<div id="telegram-login-container" style="display: flex; justify-content: center; margin-bottom: 20px;"></div>' +
           
           '<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">' +
@@ -143,7 +142,6 @@
       "</div>"
     );
 
-    // Подгружаем скрипт Telegram Login Widget
     if (!document.getElementById("telegram-widget-script")) {
       var script = document.createElement("script");
       script.id = "telegram-widget-script";
@@ -158,7 +156,6 @@
     }
   }
 
-  // Глобальная функция для обработки ответа от Telegram
   window.onTelegramAuth = async function (user) {
     try {
       var res = await fetch("/api/auth-telegram", {
@@ -167,9 +164,7 @@
         body: JSON.stringify(user)
       });
       var data = await res.json();
-      
       if (!data.ok) throw new Error(data.error);
-      
       S.setCurrentUserId(data.user.id);
       await fetchUserData();
       closeModal("authModal");
@@ -192,12 +187,10 @@
         '<div class="modal-body">' +
           '<div id="topupStep1">' +
             '<div class="field"><label>Сумма, USDT</label><input class="input" id="topupAmount" type="number" min="1" step="0.5" value="10"></div>' +
-            
             '<div style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">' +
               '<button class="btn btn-primary btn-block" id="createInvoiceBtn" type="button">Оплатить через CryptoBot (USDT)</button>' +
               '<button class="btn btn-outline btn-block" id="payStarsBtn" type="button">Оплатить Telegram Stars</button>' +
             '</div>' +
-            
             '<div class="form-error" id="topupError" hidden style="margin-top: 10px;"></div>' +
           "</div>" +
           '<div id="topupStep2" hidden>' +
@@ -226,10 +219,9 @@
 
     if (!user) {
       var loginBtn = document.createElement("button");
-      loginBtn.className = "btn btn-primary btn-sm"; // Сделаем ее главной
+      loginBtn.className = "btn btn-primary btn-sm";
       loginBtn.textContent = "Войти";
       loginBtn.onclick = function () { openModal("authModal"); };
-
       headerRight.appendChild(loginBtn);
       return;
     }
@@ -345,7 +337,6 @@
         var errEl = q("topupError");
         errEl.hidden = true;
         if (!state.currentUser) { window.showToast("Войдите в аккаунт", "error"); return; }
-        
         var amount = q("topupAmount").value;
         q("createInvoiceBtn").disabled = true;
         q("createInvoiceBtn").textContent = "Создаем...";
@@ -366,11 +357,10 @@
 
       q("payStarsBtn").addEventListener("click", function () {
         if (!state.currentUser) { window.showToast("Войдите в аккаунт", "error"); return; }
-        
         var botLink = "https://t.me/" + BOT_USERNAME + "?start=pay_" + state.currentUser.id;
         window.open(botLink, "_blank");
         closeModal("topupModal");
-        window.showToast("Перейдите в бота и оплатите Stars. После оплаты баланс пополнится автоматически.", "success");
+        window.showToast("Перейдите в бота и оплатите Stars.", "success");
       });
 
       q("checkPaymentBtn").addEventListener("click", async function () {
@@ -388,11 +378,7 @@
         q("checkPaymentBtn").disabled = false;
         q("checkPaymentBtn").textContent = "Проверить оплату";
         
-        if (!res.ok) {
-          errEl.textContent = res.error;
-          errEl.hidden = false;
-          return;
-        }
+        if (!res.ok) { errEl.textContent = res.error; errEl.hidden = false; return; }
         
         okEl.textContent = "Зачислено " + money(res.amount) + ".";
         okEl.hidden = false;
@@ -415,7 +401,7 @@
     box.innerHTML =
       '<div class="invoice-row"><span>Сумма</span><span class="invoice-amount">' + money(inv.amount) + "</span></div>" +
       '<div class="invoice-row"><span>Сеть</span><span>USDT (CryptoBot)</span></div>' +
-      '<p class="field-hint" style="margin-top: 10px;">Нажмите кнопку ниже, чтобы перейти на страницу оплаты. После оплаты возвращайтесь сюда и нажмите «Проверить оплату».</p>' +
+      '<p class="field-hint" style="margin-top: 10px;">Нажмите кнопку ниже, чтобы перейти на страницу оплаты.</p>' +
       '<div style="margin-top: 15px;">' +
         '<a href="' + inv.payUrl + '" target="_blank" class="btn btn-primary btn-block" style="text-decoration:none;">Перейти к оплате</a>' +
       '</div>';
@@ -737,7 +723,37 @@
     }
   }
 
+  // ====== ГЛАВНАЯ ФУНКЦИЯ ИНИЦИАЛИЗАЦИИ ======
   async function init() {
+    // Проверка, загрузился ли Telegram WebApp (он может грузиться с задержкой)
+    var checkTelegram = setInterval(async function() {
+      var tg = window.Telegram && window.Telegram.WebApp;
+      if (tg && tg.initData && tg.initData.length > 0) {
+        clearInterval(checkTelegram);
+        console.log("Обнаружен Telegram Mini App. Попытка автовхода...");
+        try {
+          var res = await fetch("/api/auth-miniapp", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ initData: tg.initData })
+          });
+          var data = await res.json();
+          if (data.ok) {
+            S.setCurrentUserId(data.user.id);
+            await fetchUserData();
+            renderHeader();
+            if (q("profileNick")) renderProfile();
+            if (q("projectOptions")) { await renderConstructor(); await updateSummary(); }
+          } else {
+            console.error("Ошибка автовхода:", data.error);
+          }
+        } catch (e) {
+          console.error("Сетевая ошибка автовхода:", e);
+        }
+      }
+    }, 500);
+
+    // Дальше стандартная загрузка
     await fetchUserData();
     renderHeader();
     await bindHeaderEvents();
