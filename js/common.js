@@ -6,8 +6,6 @@
 
   if (!S || !G) return;
 
-  var BOT_USERNAME = "RP_0BZVON_bot"; 
-
   var state = {
     currentUser: null,
     obzvon: { projectKey: null, positionKey: null, extras: {}, telegram: "" },
@@ -109,27 +107,15 @@
           '<button class="modal-close" type="button" data-close-modal="authModal">×</button>' +
         "</div>" +
         '<div class="modal-body">' +
-          '<div style="text-align: center; margin-bottom: 15px; color: var(--text-muted); font-size: 14px;">' +
-            'Войдите через Telegram за пару секунд или используйте логин и пароль.' +
-          '</div>' +
-          
-          '<div id="telegram-login-container" style="display: flex; justify-content: center; margin-bottom: 20px;"></div>' +
-          
-          '<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">' +
-            '<div style="flex: 1; height: 1px; background: var(--border);"></div>' +
-            '<span style="color: var(--text-muted); font-size: 12px;">ИЛИ</span>' +
-            '<div style="flex: 1; height: 1px; background: var(--border);"></div>' +
-          '</div>' +
-
           '<div class="modal-tabs">' +
-            '<button class="modal-tab active" type="button" data-auth-tab="login">Вход по паролю</button>' +
+            '<button class="modal-tab active" type="button" data-auth-tab="login">Вход</button>' +
             '<button class="modal-tab" type="button" data-auth-tab="register">Регистрация</button>' +
           "</div>" +
           '<form id="loginForm" class="auth-form">' +
             '<div class="field"><label>Логин</label><input class="input" id="loginLogin"></div>' +
             '<div class="field"><label>Пароль</label><input class="input" id="loginPassword" type="password"></div>' +
             '<div class="form-error" id="loginError" hidden></div>' +
-            '<div class="modal-actions"><button class="btn btn-outline btn-block" type="submit">Войти</button></div>' +
+            '<div class="modal-actions"><button class="btn btn-primary btn-block" type="submit">Войти</button></div>' +
           "</form>" +
           '<form id="registerForm" class="auth-form" hidden>' +
             '<div class="field"><label>Логин</label><input class="input" id="regLogin"></div>' +
@@ -141,40 +127,7 @@
         "</div>" +
       "</div>"
     );
-
-    if (!document.getElementById("telegram-widget-script")) {
-      var script = document.createElement("script");
-      script.id = "telegram-widget-script";
-      script.src = "https://telegram.org/js/telegram-widget.js?22";
-      script.setAttribute("data-telegram-login", BOT_USERNAME);
-      script.setAttribute("data-size", "large");
-      script.setAttribute("data-radius", "8");
-      script.setAttribute("data-onauth", "onTelegramAuth(user)");
-      script.setAttribute("data-request-access", "write");
-      script.async = true;
-      document.getElementById("telegram-login-container").appendChild(script);
-    }
   }
-
-  window.onTelegramAuth = async function (user) {
-    try {
-      var res = await fetch("/api/auth-telegram", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(user)
-      });
-      var data = await res.json();
-      if (!data.ok) throw new Error(data.error);
-      S.setCurrentUserId(data.user.id);
-      await fetchUserData();
-      closeModal("authModal");
-      renderHeader();
-      afterAuthChange();
-      window.showToast("Вы вошли как " + data.user.nick);
-    } catch (err) {
-      window.showToast(err.message, "error");
-    }
-  };
 
   function buildTopupModal() {
     ensureModal(
@@ -357,7 +310,7 @@
 
       q("payStarsBtn").addEventListener("click", function () {
         if (!state.currentUser) { window.showToast("Войдите в аккаунт", "error"); return; }
-        var botLink = "https://t.me/" + BOT_USERNAME + "?start=pay_" + state.currentUser.id;
+        var botLink = "https://t.me/RP_0BZVON_bot?start=pay_" + state.currentUser.id;
         window.open(botLink, "_blank");
         closeModal("topupModal");
         window.showToast("Перейдите в бота и оплатите Stars.", "success");
@@ -723,37 +676,7 @@
     }
   }
 
-  // ====== ГЛАВНАЯ ФУНКЦИЯ ИНИЦИАЛИЗАЦИИ ======
   async function init() {
-    // Проверка, загрузился ли Telegram WebApp (он может грузиться с задержкой)
-    var checkTelegram = setInterval(async function() {
-      var tg = window.Telegram && window.Telegram.WebApp;
-      if (tg && tg.initData && tg.initData.length > 0) {
-        clearInterval(checkTelegram);
-        console.log("Обнаружен Telegram Mini App. Попытка автовхода...");
-        try {
-          var res = await fetch("/api/auth-miniapp", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ initData: tg.initData })
-          });
-          var data = await res.json();
-          if (data.ok) {
-            S.setCurrentUserId(data.user.id);
-            await fetchUserData();
-            renderHeader();
-            if (q("profileNick")) renderProfile();
-            if (q("projectOptions")) { await renderConstructor(); await updateSummary(); }
-          } else {
-            console.error("Ошибка автовхода:", data.error);
-          }
-        } catch (e) {
-          console.error("Сетевая ошибка автовхода:", e);
-        }
-      }
-    }, 500);
-
-    // Дальше стандартная загрузка
     await fetchUserData();
     renderHeader();
     await bindHeaderEvents();
